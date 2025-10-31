@@ -223,12 +223,12 @@ PhaseSpace<N,GRND>::operator=( PhaseSpace<N,GRND> const& other)
 	if(this==&other) return *this;
 
 	this->fSeed = other.GetSeed();
-	this->fMotherMass = other.other.GetMotherMass();
+	this->fMotherMass = other.GetMotherMass();
 	this->fMaxWeight = other.GetMaxWeight();
 	this->fECM = other.GetECM();
 
 	for(size_t i=0;i<N;i++)
-		this->ffMasses[i]= other.GetMasses()[i];
+		this->fMasses[i]= other.GetMasses()[i];
 
 	return *this;
 }
@@ -246,7 +246,7 @@ PhaseSpace<N,GRND>::operator=( PhaseSpace<N,GRND2> const& other)
 	this->fECM = other.GetECM();
 
 	for(size_t i=0;i<N;i++)
-		this->ffMasses[i]= other.GetMasses()[i];
+		this->fMasses[i]= other.GetMasses()[i];
 
 		return *this;
 }
