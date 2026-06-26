@@ -567,7 +567,7 @@ public :
 	{
 		if(this==&other) return *this;
 
-		fDecays  = other.GetStoragee();
+		fDecays  = other.GetStorage();
 
 		return *this;
 	}
