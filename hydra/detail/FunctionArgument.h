@@ -36,6 +36,20 @@ namespace hydra {
 
 namespace detail {
 
+/*
+ * Helper concepts to reduce the repetition in the function-argument
+ * operator overloads below.
+ */
+
+// T is a Hydra function argument
+template<typename T>
+concept FunctionArg = is_function_argument<T>::value;
+
+// Arg1 and Arg2 together form a function-argument pack
+template<typename Arg1, typename Arg2>
+concept FunctionArgPack = is_function_argument_pack<Arg1, Arg2>::value;
+
+
 template<typename Derived, typename Type>
 struct FunctionArgument
 {
@@ -78,9 +92,8 @@ struct FunctionArgument
     }
 
     template<typename T>
-    __hydra_host__ __hydra_device__
-    typename  std::enable_if< std::is_convertible<T, value_type>::value && (!detail::is_function_argument<T>::value),
-    FunctionArgument<name_type, value_type>&>::type
+    requires (std::is_convertible_v<T, value_type> && (!detail::FunctionArg<T>))
+    __hydra_host__ __hydra_device__ FunctionArgument<name_type, value_type>&
     operator=(T other)
     {
     	value = other;
@@ -88,9 +101,8 @@ struct FunctionArgument
     }
 
     template<typename T>
-    __hydra_host__ __hydra_device__
-    typename  std::enable_if< std::is_convertible<T, value_type>::value && (!detail::is_function_argument<T>::value),
-       FunctionArgument<name_type, value_type>&>::type
+    requires (std::is_convertible_v<T, value_type> && (!detail::FunctionArg<T>))
+    __hydra_host__ __hydra_device__ FunctionArgument<name_type, value_type>&
     operator=(hydra::thrust::device_reference<T> const& other)
     {
     	value = other;
@@ -176,9 +188,8 @@ struct FunctionArgument
     //=============================================================
 
     template<typename Derived2, typename Type2>
-    __hydra_host__ __hydra_device__
-    typename std::enable_if<std::is_convertible<Type, Type2>::value,
-    FunctionArgument<Derived, Type>&>::type
+    requires (std::is_convertible_v<Type, Type2>)
+    __hydra_host__ __hydra_device__ FunctionArgument<Derived, Type>&
     operator+=( FunctionArgument<Derived2, Type2> const & other)
 	{
         value+=other();
@@ -186,9 +197,8 @@ struct FunctionArgument
 	}
 
     template<typename Derived2, typename Type2>
-    __hydra_host__ __hydra_device__
-    typename std::enable_if<std::is_convertible<Type, Type2>::value,
-    FunctionArgument<Derived, Type>&>::type
+    requires (std::is_convertible_v<Type, Type2>)
+    __hydra_host__ __hydra_device__ FunctionArgument<Derived, Type>&
     operator-=( FunctionArgument<Derived2, Type2> const & other)
 	{
         value-=other();
@@ -196,9 +206,8 @@ struct FunctionArgument
 	}
 
     template<typename Derived2, typename Type2>
-    __hydra_host__ __hydra_device__
-    typename std::enable_if<std::is_convertible<Type, Type2>::value,
-    FunctionArgument<Derived, Type>&>::type
+    requires (std::is_convertible_v<Type, Type2>)
+    __hydra_host__ __hydra_device__ FunctionArgument<Derived, Type>&
     operator*=( FunctionArgument<Derived2, Type2> const & other)
 	{
         value*=other();
@@ -206,9 +215,8 @@ struct FunctionArgument
 	}
 
     template<typename Derived2, typename Type2>
-    __hydra_host__ __hydra_device__
-    typename std::enable_if<std::is_convertible<Type, Type2>::value,
-    FunctionArgument<Derived, Type>&>::type
+    requires (std::is_convertible_v<Type, Type2>)
+    __hydra_host__ __hydra_device__ FunctionArgument<Derived, Type>&
     operator/=( FunctionArgument<Derived2, Type2> const & other)
 	{
         value/=other();
@@ -217,9 +225,8 @@ struct FunctionArgument
 
 
     template<typename Derived2, typename Type2>
-    __hydra_host__ __hydra_device__
-    typename std::enable_if<std::is_convertible<Type, Type2>::value,
-    FunctionArgument<Derived, Type>&>::type
+    requires (std::is_convertible_v<Type, Type2>)
+    __hydra_host__ __hydra_device__ FunctionArgument<Derived, Type>&
     operator%=( FunctionArgument<Derived2, Type2> const & other)
 	{
         value%=other();
@@ -298,11 +305,9 @@ __hydra_host__ __hydra_device__										   \
   }                                                                    \
                                                                        \
   template<typename T>                                                 \
-  typename std::enable_if<                                             \
-        std::is_base_of< detail::FunctionArgument<T, TYPE>, T>::value, \
-        NAME& >::type                                                  \
+  requires (std::is_base_of< detail::FunctionArgument<T, TYPE>, T>::value) \
   __hydra_host__ __hydra_device__                                      \
-  operator=(T const& other)                                            \
+  NAME& operator=(T const& other)                                      \
   {                                                                    \
                                                                        \
         super_type::operator=(other);                                  \
@@ -319,9 +324,8 @@ namespace hydra {
 namespace arguments  {
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument<Arg1>::value && !detail::is_function_argument<Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>()+  std::declval<Arg2>() )>::type
+requires (detail::FunctionArg<Arg1> && !detail::FunctionArg<Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>()+  std::declval<Arg2>() )
 operator+( Arg1 const& a1, Arg2 const& a2) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()+
@@ -331,9 +335,8 @@ operator+( Arg1 const& a1, Arg2 const& a2) {
 }
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument<Arg1>::value && !detail::is_function_argument<Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>()+  std::declval<Arg2>() )>::type
+requires (detail::FunctionArg<Arg1> && !detail::FunctionArg<Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>()+  std::declval<Arg2>() )
 operator+(Arg2 const& a2, Arg1 const& a1 ) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()+
@@ -344,10 +347,9 @@ operator+(Arg2 const& a2, Arg1 const& a1 ) {
 
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument_pack<Arg1, Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>()+
-		 std::declval<typename  Arg2::value_type>() )>::type
+requires (detail::FunctionArgPack<Arg1, Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>()+
+		 std::declval<typename  Arg2::value_type>() )
 operator+( Arg1 const& a1, Arg2 const& a2) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()+
@@ -359,9 +361,8 @@ operator+( Arg1 const& a1, Arg2 const& a2) {
 //---------------
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument<Arg1>::value && !detail::is_function_argument<Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>()- std::declval<Arg2>() )>::type
+requires (detail::FunctionArg<Arg1> && !detail::FunctionArg<Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>()- std::declval<Arg2>() )
 operator-( Arg1 const& a1, Arg2 const& a2) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()-
@@ -371,9 +372,8 @@ operator-( Arg1 const& a1, Arg2 const& a2) {
 }
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument<Arg1>::value && !detail::is_function_argument<Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>()-  std::declval<Arg2>() )>::type
+requires (detail::FunctionArg<Arg1> && !detail::FunctionArg<Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>()-  std::declval<Arg2>() )
 operator-(Arg2 const& a2, Arg1 const& a1 ) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()-
@@ -383,10 +383,9 @@ operator-(Arg2 const& a2, Arg1 const& a1 ) {
 }
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument_pack<Arg1, Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>()-
-		 std::declval<typename  Arg2::value_type>() )>::type
+requires (detail::FunctionArgPack<Arg1, Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>()-
+		 std::declval<typename  Arg2::value_type>() )
 operator-( Arg1 const& a1, Arg2 const& a2) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()-
@@ -399,9 +398,8 @@ operator-( Arg1 const& a1, Arg2 const& a2) {
 //----------------
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument<Arg1>::value && !detail::is_function_argument<Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>()* std::declval<Arg2>() )>::type
+requires (detail::FunctionArg<Arg1> && !detail::FunctionArg<Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>()* std::declval<Arg2>() )
 operator*( Arg1 const& a1, Arg2 const& a2) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()-
@@ -411,9 +409,8 @@ operator*( Arg1 const& a1, Arg2 const& a2) {
 }
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument<Arg1>::value && !detail::is_function_argument<Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>()*  std::declval<Arg2>() )>::type
+requires (detail::FunctionArg<Arg1> && !detail::FunctionArg<Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>()*  std::declval<Arg2>() )
 operator*(Arg2 const& a2, Arg1 const& a1 ) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()-
@@ -423,10 +420,9 @@ operator*(Arg2 const& a2, Arg1 const& a1 ) {
 }
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument_pack<Arg1, Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>()*
-		 std::declval<typename  Arg2::value_type>() )>::type
+requires (detail::FunctionArgPack<Arg1, Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>()*
+		 std::declval<typename  Arg2::value_type>() )
 operator*( Arg1 const& a1, Arg2 const& a2) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()*
@@ -438,9 +434,8 @@ operator*( Arg1 const& a1, Arg2 const& a2) {
 //----------------
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument<Arg1>::value && !detail::is_function_argument<Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>() / std::declval<Arg2>() )>::type
+requires (detail::FunctionArg<Arg1> && !detail::FunctionArg<Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>() / std::declval<Arg2>() )
 operator/( Arg1 const& a1, Arg2 const& a2) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()-
@@ -450,9 +445,8 @@ operator/( Arg1 const& a1, Arg2 const& a2) {
 }
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument<Arg1>::value && !detail::is_function_argument<Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>() / std::declval<Arg2>() )>::type
+requires (detail::FunctionArg<Arg1> && !detail::FunctionArg<Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>() / std::declval<Arg2>() )
 operator/(Arg2 const& a2, Arg1 const& a1 ) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()-
@@ -462,10 +456,9 @@ operator/(Arg2 const& a2, Arg1 const& a1 ) {
 }
 
 template<typename Arg1, typename Arg2>
-__hydra_host__ __hydra_device__
-typename std::enable_if<detail::is_function_argument_pack<Arg1, Arg2>::value,
-decltype(std::declval<typename  Arg1::value_type>()/
-		 std::declval<typename  Arg2::value_type>() )>::type
+requires (detail::FunctionArgPack<Arg1, Arg2>)
+__hydra_host__ __hydra_device__ decltype(std::declval<typename  Arg1::value_type>()/
+		 std::declval<typename  Arg2::value_type>() )
 operator/( Arg1 const& a1, Arg2 const& a2) {
 
 	typedef decltype(std::declval<typename  Arg1::value_type>()/
@@ -477,14 +470,16 @@ operator/( Arg1 const& a1, Arg2 const& a2) {
 
 
 template<typename Arg>
-inline typename std::enable_if<detail::is_function_argument<Arg>::value, std::ostream&>::type
+requires (detail::FunctionArg<Arg>)
+inline std::ostream&
 operator<<(std::ostream& s, const hydra::thrust::device_reference<Arg>& a){
 	s <<  typename Arg::name_type(a).Value();
 	return s;
 }
 
 template<typename Arg>
-inline typename std::enable_if<detail::is_function_argument<Arg>::value, std::ostream&>::type
+requires (detail::FunctionArg<Arg>)
+inline std::ostream&
 operator<<(std::ostream& s, const Arg& a){
 	s <<  a.Value();
 	return s;
