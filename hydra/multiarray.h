@@ -47,6 +47,8 @@
 #include <hydra/detail/external/hydra_thrust/functional.h>
 #include <hydra/detail/external/hydra_thrust/detail/type_traits.h>
 #include <hydra/detail/external/hydra_thrust/iterator/transform_iterator.h>
+#include <hydra/detail/IteratorConcepts.h>
+#include <concepts>
 
 
 namespace hydra {
@@ -132,7 +134,8 @@ public:
 		hydra::thrust::fill(begin(), end(), value );
 	}
 
-	template<typename Int, typename = typename hydra::thrust::detail::enable_if<std::is_integral<Int>::value>::type >
+	template<typename Int>
+	requires (std::integral<Int>)
 	multiarray(hydra::pair<Int, typename detail::tuple_type<N, T>::type > const& pair){
 		__resize(pair.first);
 		hydra::thrust::fill(begin(), end(), pair.second );
@@ -163,12 +166,8 @@ public:
 		hydra::thrust::copy(first, last, begin());
 	}
 
-	template< typename Iterable,
-	          typename = typename std::enable_if<
-	           (detail::is_iterable<Iterable>::value) &&
-	          !(detail::is_iterator<Iterable>::value) &&
-	           (std::is_convertible<decltype(*std::declval<Iterable>().begin()), value_type>::value)
-	          >::type >
+	template< typename Iterable>
+	requires ((hydra::detail::Iterable<Iterable>) && !(detail::is_iterator<Iterable>::value) && (std::is_convertible<decltype(*std::declval<Iterable>().begin()), value_type>::value))
 	multiarray(Iterable&& other )
 	{
 		__resize( hydra::thrust::distance(
@@ -291,8 +290,8 @@ public:
 
 
 	template< typename InputIterator>
-	inline typename hydra::thrust::detail::enable_if<
-	 detail::is_instantiation_of< hydra::thrust::zip_iterator, InputIterator>::value, void>::type
+	requires (detail::is_instantiation_of< hydra::thrust::zip_iterator, InputIterator>::value)
+	inline void
 	insert(iterator pos, InputIterator first, InputIterator last)
 	{
 		size_type position = hydra::thrust::distance(begin(), pos);
@@ -708,11 +707,13 @@ private:
 	//__________________________________________
 	// pop_back
 	template<size_t I>
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void >::type
+	requires ((I == N))
+	inline void
 	__pop_back(){}
 
 	template<size_t I=0>
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void >::type
+	requires ((I < N))
+	inline void
 	__pop_back()
 	{
 		std::get<I>(fData).pop_back();
@@ -722,11 +723,13 @@ private:
 	//__________________________________________
 	// resize
 	template<size_t I>
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void >::type
+	requires ((I == N))
+	inline void
 	__resize(size_type){}
 
 	template<size_t I=0>
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void >::type
+	requires ((I < N))
+	inline void
 	__resize(size_type n)
 	{
 		std::get<I>(fData).resize(n);
@@ -736,11 +739,13 @@ private:
 	//__________________________________________
 	// push_back
 	template<size_t I>
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void >::type
+	requires ((I == N))
+	inline void
 	__push_back( value_type const& ){}
 
 	template<size_t I=0>
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void >::type
+	requires ((I < N))
+	inline void
 	__push_back( value_type const& value )
 	{
 		std::get<I>(fData).push_back( hydra::thrust::get<I>(value) );
@@ -750,11 +755,13 @@ private:
 	//__________________________________________
 	// clear
 	template<size_t I>
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void >::type
+	requires ((I == N))
+	inline void
 	__clear(){}
 
 	template<size_t I=0>
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void >::type
+	requires ((I < N))
+	inline void
 	__clear( )
 	{
 		std::get<I>(fData).clear();
@@ -764,11 +771,13 @@ private:
 	//__________________________________________
 	// shrink_to_fit
 	template<size_t I>
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void >::type
+	requires ((I == N))
+	inline void
 	__shrink_to_fit(){}
 
 	template<size_t I=0>
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void >::type
+	requires ((I < N))
+	inline void
 	__shrink_to_fit( )
 	{
 		std::get<I>(fData).shrink_to_fit();
@@ -778,11 +787,13 @@ private:
 	//__________________________________________
 	// shrink_to_fit
 	template<size_t I>
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void >::type
+	requires ((I == N))
+	inline void
 	__reserve(size_type ){}
 
 	template<size_t I=0>
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void >::type
+	requires ((I < N))
+	inline void
 	__reserve(size_type size )
 	{
 		std::get<I>(fData).reserve(size);
@@ -792,11 +803,13 @@ private:
 	//__________________________________________
 	// erase
 	template<size_t I>
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void>::type
+	requires ((I == N))
+	inline void
 	__erase_helper( size_type ){ }
 
 	template<size_t I=0>
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void>::type
+	requires ((I < N))
+	inline void
 	__erase_helper(size_type position )
 	{
 		std::get<I>(fData).erase(
@@ -815,11 +828,13 @@ private:
 	// erase
 
 	template<size_t I>
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void>::type
+	requires ((I == N))
+	inline void
 	__erase_helper( size_type ,  size_type ){}
 
 	template<size_t I=0>
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void>::type
+	requires ((I < N))
+	inline void
 	__erase_helper( size_type first_position,  size_type last_position)
 	{
 		std::get<I>(fData).erase(
@@ -839,11 +854,13 @@ private:
 	//__________________________________________
 	// insert
 	template<size_t I>
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void >::type
+	requires ((I == N))
+	inline void
 	__insert_helper( size_type ,  const value_type&){}
 
 	template<size_t I=0>
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void >::type
+	requires ((I < N))
+	inline void
 	__insert_helper( size_type position,  const value_type &x)
 	{
 		std::get<I>(fData).insert(
@@ -863,11 +880,13 @@ private:
 	//__________________________________________
 	// insert
 	template<size_t I>
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void >::type
+	requires ((I == N))
+	inline void
 	__insert_helper( size_type , size_type , const value_type&){}
 
 	template<size_t I=0>
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void >::type
+	requires ((I < N))
+	inline void
 	__insert_helper( size_type position, size_type n, const value_type &x)
 	{
 		std::get<I>(fData).insert(
@@ -885,11 +904,13 @@ private:
 	//__________________________________________
 	// insert
 	template<size_t I,typename InputIterator >
-	 inline typename hydra::thrust::detail::enable_if<(I == N), void >::type
+	requires ((I == N))
+	inline void
 	__insert(size_type, InputIterator const&, InputIterator const& ){}
 
 	template<size_t I=0,typename InputIterator >
-	 inline typename hydra::thrust::detail::enable_if<(I < N), void >::type
+	requires ((I < N))
+	inline void
 	__insert(size_type position, InputIterator const& first, InputIterator const& last  )
 	{
 		std::get<I>(fData).insert(std::get<I>(fData).begin() + position,
