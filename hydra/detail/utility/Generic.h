@@ -33,6 +33,7 @@
 //std
 #include <type_traits>
 #include <array>
+#include <concepts>
 
 
 namespace hydra {
@@ -188,12 +189,14 @@ template<class ...A> struct CanConvert{
 	// multiply  std::array elements
 	//----------------------------------------
 	template<typename T, size_t N, size_t I>
-	typename std::enable_if< (I==N), void  >::type
+	requires ((I==N))
+	void
 	multiply( std::array<T, N> const& , T&  )
 	{ }
 
 	template<typename T, size_t N, size_t I=0>
-	typename std::enable_if< (I<N), void  >::type
+	requires ((I<N))
+	void
 	multiply( std::array<T, N> const&  obj, T& result )
 	{
 		result = I==0? 1.0: result;
@@ -205,12 +208,14 @@ template<class ...A> struct CanConvert{
 	// multiply static array elements
 	//----------------------------------------
 	template<typename T, size_t N, size_t I>
-	typename std::enable_if< (I==N), void  >::type
+	requires ((I==N))
+	void
 	multiply(const T (&)[N] , T& )
 	{ }
 
 	template<typename T, size_t N, size_t I=0>
-	typename std::enable_if< (I<N), void  >::type
+	requires ((I<N))
+	void
 	multiply(const  T (&obj)[N], T& result )
 	{
 		result = I==0? 1.0: result;
@@ -225,13 +230,15 @@ template<class ...A> struct CanConvert{
 	//-------------------------
 	//end of recursion
 	template<typename T, size_t DIM, size_t I>
-	typename std::enable_if< (I==DIM) && (std::is_integral<T>::value), void  >::type
+	requires ((I==DIM) && (std::integral<T>))
+	void
 	get_indexes(size_t , std::array<T, DIM> const& , std::array<T,DIM>& )
 	{}
 
 	//begin of the recursion
 	template<typename T, size_t DIM, size_t I=0>
-	typename std::enable_if< (I<DIM) && (std::is_integral<T>::value), void  >::type
+	requires ((I<DIM) && (std::integral<T>))
+	void
 	get_indexes(size_t index, std::array<T, DIM> const& depths, std::array<T,DIM>& indexes)
 	{
 
@@ -251,13 +258,15 @@ template<class ...A> struct CanConvert{
 	//-------------------------
 	//end of recursion
 	template<typename T, size_t DIM, size_t I>
-	typename std::enable_if< (I==DIM) && (std::is_integral<T>::value), void  >::type
+	requires ((I==DIM) && (std::integral<T>))
+	void
 	get_indexes(size_t , const T ( &)[DIM], T (&)[DIM])
 	{}
 
 	//begin of the recursion
 	template<typename T, size_t DIM, size_t I=0>
-	typename std::enable_if< (I<DIM) && (std::is_integral<T>::value), void  >::type
+	requires ((I<DIM) && (std::integral<T>))
+	void
 	get_indexes(size_t index,const  T ( &depths)[DIM], T (&indexes)[DIM] )
 	{
 
