@@ -32,6 +32,11 @@
 #include <concepts>
 #include <type_traits>
 
+#include <hydra/detail/FormulaTraits.h>
+#include <hydra/detail/RngFormula.h>
+#include <hydra/detail/RandomIteratorTraits.h>
+#include <hydra/detail/external/hydra_thrust/iterator/iterator_traits.h>
+
 namespace hydra {
 
 namespace detail {
@@ -49,6 +54,38 @@ concept NotConvertibleToIteratorValue =
     !std::convertible_to<
         decltype(RngFormula<FUNCTOR>().Generate(std::declval<Engine&>(), std::declval<const FUNCTOR&>())),
         typename std::iterator_traits<Iterator>::value_type>;
+
+namespace random {
+
+/**
+ * @brief Satisfied when @c T is accepted as an iterator argument by the random
+ * generation/sampling overloads (see hydra::detail::random::is_iterator).
+ */
+template <typename T>
+concept Iterator = is_iterator<T>::value;
+
+/**
+ * @brief Satisfied when @c T is accepted as an iterable argument by the random
+ * generation/sampling overloads (see hydra::detail::random::is_iterable).
+ */
+template <typename T>
+concept Iterable = is_iterable<T>::value;
+
+/**
+ * @brief Satisfied when @c T is a callable (functor/lambda) accepted by the
+ * random generation/sampling overloads (see hydra::detail::random::is_callable).
+ */
+template <typename T>
+concept Callable = is_callable<T>::value;
+
+/**
+ * @brief Satisfied when @c Functor has an RngFormula whose result is convertible
+ * to @c Iterable's value type (see hydra::detail::random::is_matching_iterable).
+ */
+template <typename Engine, typename Functor, typename Iterable>
+concept MatchingIterable = is_matching_iterable<Engine, Functor, Iterable>::value;
+
+}  // namespace random
 
 }  // namespace detail
 

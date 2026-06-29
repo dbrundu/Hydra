@@ -33,17 +33,37 @@
 #include <type_traits>
 
 #include <hydra/detail/FunctorTraits.h>
+#include <hydra/detail/CompositeTraits.h>
+
 
 namespace hydra {
 
 namespace detail {
 
 /**
+ * @brief Satisfied when @c T is a Hydra functor (see hydra::detail::is_hydra_functor).
+ */
+template <typename T>
+concept HydraFunctor = is_hydra_functor<T>::value;
+
+/**
+ * @brief Satisfied when @c T is a Hydra composite functor (see hydra::detail::is_hydra_composite_functor).
+ */
+template <typename T>
+concept HydraCompositeFunctor = is_hydra_composite_functor<T>::value;
+
+/**
+ * @brief Satisfied when @c T is a Hydra lambda (see hydra::detail::is_hydra_lambda).
+ */
+template <typename T>
+concept HydraLambda = is_hydra_lambda<T>::value;
+
+/**
  * @brief Satisfied when @c T is a Hydra functor or a Hydra lambda, i.e. a
  * callable that can take part in functor arithmetic.
  */
 template <typename T>
-concept HydraCallable = is_hydra_functor<T>::value || is_hydra_lambda<T>::value;
+concept HydraCallable = HydraFunctor<T> || HydraLambda<T>;
 
 }  // namespace detail
 

@@ -33,6 +33,7 @@
 #include <type_traits>
 
 #include <hydra/detail/Iterable_traits.h>
+#include <hydra/detail/IteratorTraits.h>
 #include <hydra/detail/TypeTraits.h>
 
 namespace hydra {
@@ -47,6 +48,13 @@ template <typename T>
 concept Iterable = is_iterable<T>::value;
 
 /**
+ * @brief Satisfied when @c Ts model Hydra iterables, i.e. expose @c begin()
+ * and @c end() returning iterators (see hydra::detail::are_iterables).
+ */
+template <typename ...Ts>
+concept Iterables = are_iterables<Ts...>::value;
+
+/**
  * @brief Satisfied when @c T models a Hydra reverse-iterable, i.e. exposes
  * @c rbegin() and @c rend() (see hydra::detail::is_reverse_iterable).
  */
@@ -58,6 +66,12 @@ concept ReverseIterable = is_reverse_iterable<T>::value;
  */
 template <typename T>
 concept Iterator = is_iterator<T>::value;
+
+/**
+ * @brief Satisfied when @c Ts model iterators (see hydra::detail::are_iterators).
+ */
+template <typename ...Ts>
+concept Iterators = are_iterators<Ts...>::value;
 
 }  // namespace detail
 
