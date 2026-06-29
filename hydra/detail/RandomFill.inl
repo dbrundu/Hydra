@@ -90,7 +90,8 @@ namespace hydra{
      * @param functor distribution to be sampled
      */
     template< typename Engine, hydra::detail::Backend BACKEND, typename Iterable, typename FUNCTOR >
-    typename std::enable_if< detail::random::is_matching_iterable<Engine, FUNCTOR, Iterable>::value, void>::type
+    requires (detail::random::MatchingIterable<Engine, FUNCTOR, Iterable>)
+    void
     fill_random(hydra::detail::BackendPolicy<BACKEND> const& policy,
                 Iterable&& iterable, FUNCTOR const& functor, size_t seed, size_t rng_jump){
 
@@ -105,8 +106,8 @@ namespace hydra{
      * @param functor distribution to be sampled
      */
     template< typename Engine, typename Iterable, typename FUNCTOR >
-    typename std::enable_if< detail::random::is_matching_iterable<Engine, FUNCTOR, Iterable>::value,
-     void>::type
+    requires (detail::random::MatchingIterable<Engine, FUNCTOR, Iterable>)
+    void
     fill_random(Iterable&& iterable, FUNCTOR const& functor, size_t seed, size_t rng_jump){
 
         fill_random(std::forward<Iterable>(iterable).begin(),
@@ -174,7 +175,8 @@ namespace hydra{
      * @brief Fall back function if the argument is not an Iterable or if it is not convertible to the Functor return value
      */
     template< typename Engine, hydra::detail::Backend BACKEND, typename Iterable, typename FUNCTOR >
-    typename std::enable_if< !(detail::random::is_matching_iterable<Engine, FUNCTOR, Iterable>::value), void>::type
+    requires (!detail::random::MatchingIterable<Engine, FUNCTOR, Iterable>)
+    void
     fill_random(hydra::detail::BackendPolicy<BACKEND> const& policy,
                 Iterable&& iterable, FUNCTOR const& functor, size_t seed, size_t rng_jump)
     {
@@ -188,7 +190,8 @@ namespace hydra{
      * @brief Fall back function if the argument is not an Iterable or if it is not convertible to the Functor return value
      */
     template< typename Engine, typename Iterable, typename FUNCTOR >
-    typename std::enable_if<!detail::random::is_matching_iterable<Engine, FUNCTOR, Iterable>::value, void>::type
+    requires (!detail::random::MatchingIterable<Engine, FUNCTOR, Iterable>)
+    void
     fill_random(Iterable&& iterable, FUNCTOR const& functor, size_t seed, size_t rng_jump)
     {
         HYDRA_STATIC_ASSERT( int(std::is_class<Engine>::value) ==-1 ,
