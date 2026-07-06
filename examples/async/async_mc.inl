@@ -94,6 +94,10 @@
 #include <hydra/SparseHistogram.h>
 #include <hydra/DenseHistogram.h>
 #include <hydra/Range.h>
+//analytic 1D distributions used to fill the per-backend datasets
+#include <hydra/functions/UniformShape.h>
+#include <hydra/functions/Gaussian.h>
+#include <hydra/functions/BreitWignerNR.h>
 /*-------------------------------------
  * Include classes from ROOT to fill
  * and draw histograms and plots.
@@ -114,6 +118,10 @@
  * This example demonstrates how to generate Monte Carlo samples in parallel
  * deploying different backends asynchronously.
  */
+
+//argument type used by the analytic 1D distributions below
+declarg(xvar, double)
+using namespace hydra::arguments;
 
 int main(int argv, char** argc)
 {
@@ -145,27 +153,23 @@ int main(int argv, char** argc)
 	double sigma =  1.5;
     size_t nbins =  100;
 
-    auto GAUSSIAN3D =  [=] __hydra_dual__ (unsigned int n,double* x ){
+	// separable 3D Gaussian with a different width per axis
+	// (sigma, sigma+0.5, sigma+1.0), evaluated on the (x,y,z) coordinates of
+	// each sampled point.
+	auto GAUSSIAN3D =  [=] __hydra_dual__ (double x, double y, double z ){
 
-    	double g = 1.0;
+		double sx = sigma;
+		double sy = sigma + 0.5;
+		double sz = sigma + 1.0;
 
-    	for(size_t i=0; i<3; i++){
+		double gx = exp( -(x-mean)*(x-mean)/(2.0*sx*sx) )/sqrt(2.0*sx*sx*PI);
+		double gy = exp( -(y-mean)*(y-mean)/(2.0*sy*sy) )/sqrt(2.0*sy*sy*PI);
+		double gz = exp( -(z-mean)*(z-mean)/(2.0*sz*sz) )/sqrt(2.0*sz*sz*PI);
 
-    		double m2 = (x[i] - mean )*(x[i] - mean );
-    		double s2 = (sigma+i/2.0)*(sigma+i/2.0);
-    		g *= exp(-m2/(2.0 * s2 ))/( sqrt(2.0*s2*PI));
-    	}
-
-    	return g;
+		return gx*gy*gz;
     };
 
     auto Gaussian3D = hydra::wrap_lambda( GAUSSIAN3D );
-
-
-	//---------
-	//generator
-	hydra::Random<>
-	Generator( std::chrono::system_clock::now().time_since_epoch().count() );
 
 
 	//------------------------
@@ -191,34 +195,34 @@ int main(int argv, char** argc)
 	hydra::multiarray<double, 3, hydra::host::sys_t> dataset_cpu(nentries);
 	hydra::multiarray<double, 3, hydra::device::sys_t> dataset_gpu(nentries);
 
-	auto Histogram_CPP = std::async( std::launch::async, [=, &dataset_cpu, &Generator]  {
+	auto Histogram_CPP = std::async( std::launch::async, [=, &dataset_cpu]  {
 
-		Generator.Uniform(min, max, dataset_cpu.begin(0), dataset_cpu.end(0) );
+		hydra::fill_random( dataset_cpu.begin(0), dataset_cpu.end(0), hydra::UniformShape<xvar>(min, max), 0xa1 );
 		hydra::DenseHistogram<double, 1, hydra::host::sys_t > Histogram(nbins, min, max);
 		Histogram.Fill( dataset_cpu.begin(0), dataset_cpu.end(0) );
 
 		return  Histogram;
 	} );
 
-	auto Histogram_OMP = std::async( std::launch::async, [=, &dataset_cpu, &Generator]  {
+	auto Histogram_OMP = std::async( std::launch::async, [=, &dataset_cpu]  {
 
-		Generator.Gauss(0.0, 1.0, dataset_cpu.begin(1), dataset_cpu.end(1) );
+		hydra::fill_random( dataset_cpu.begin(1), dataset_cpu.end(1), hydra::Gaussian<xvar>(0.0, 1.0), 0xa2 );
 		hydra::DenseHistogram<double, 1, hydra::host::sys_t> Histogram(nbins, min, max);
 		Histogram.Fill( dataset_cpu.begin(1), dataset_cpu.end(1) );
 
 		return  Histogram;
 	} );
 
-	auto Histogram_TBB = std::async( std::launch::async, [=, &dataset_cpu, &Generator]  {
+	auto Histogram_TBB = std::async( std::launch::async, [=, &dataset_cpu]  {
 
-		Generator.BreitWigner(0.0, 0.50, dataset_cpu.begin(2), dataset_cpu.end(2) );
+		hydra::fill_random( dataset_cpu.begin(2), dataset_cpu.end(2), hydra::BreitWignerNR<xvar>(0.0, 0.50), 0xa3 );
 		hydra::DenseHistogram<double, 1, hydra::host::sys_t> Histogram(nbins, min, max);
 		Histogram.Fill( dataset_cpu.begin(2), dataset_cpu.end(2) );
 
 		return  Histogram;
 	} );
 
-	auto Histogram_CUDA = std::async( std::launch::async, [=, &dataset_gpu, &Generator]  {
+	auto Histogram_CUDA = std::async( std::launch::async, [=, &dataset_gpu]  {
 
 		std::array<double, 3> _max;
 		std::array<double, 3> _min;
@@ -230,7 +234,7 @@ int main(int argv, char** argc)
 			_nbins[i] = nbins;
 		}
 
-		auto range  = Generator.Sample( dataset_gpu.begin(), dataset_gpu.end(), _min, _max, Gaussian3D);
+		auto range  = hydra::sample( dataset_gpu.begin(), dataset_gpu.end(), _min, _max, Gaussian3D);
 		hydra::SparseHistogram< double, 3,hydra::device::sys_t> Histogram(_nbins, _min, _max);
 		Histogram.Fill( range.begin(), range.end() );
 
