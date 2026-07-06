@@ -49,13 +49,9 @@ DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>&
 DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>::Fill(Iterator1 begin, Iterator1 end, Iterator2 wbegin )
 {
 	using hydra::thrust::system::detail::generic::select_system;
-	typedef  typename hydra::thrust::iterator_system<Iterator1>::type system1_t;
-	typedef  typename hydra::thrust::iterator_system<Iterator2>::type system2_t;
-	system1_t system1;
-	system2_t system2;
 
 	typedef  typename hydra::thrust::detail::remove_reference<
-			decltype(select_system(fSystem, system1, system2 ))>::type common_system_t;
+			decltype(select_system(fSystem))>::type common_system_t;
 
 
     //----------------
@@ -67,15 +63,15 @@ DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>::
 	//work on local copy of weights
 
 	auto weights  = hydra::thrust::get_temporary_buffer<double>(common_system_t(), data_size);
-	hydra::thrust::copy(wbegin, wbegin+data_size, weights.first);
+	hydra::thrust::copy(common_system_t(), wbegin, wbegin+data_size, weights.first);
 
 	auto keys_begin = hydra::thrust::make_transform_iterator(begin, key_functor );
 	auto keys_end   = hydra::thrust::make_transform_iterator(end, key_functor);
 	auto key_buffer = hydra::thrust::get_temporary_buffer<size_t>(common_system_t(), data_size);
 
-	hydra::thrust::copy( keys_begin, keys_end, key_buffer.first);
+	hydra::thrust::copy( common_system_t(), keys_begin, keys_end, key_buffer.first);
 
-	hydra::thrust::sort_by_key(key_buffer.first, key_buffer.first + key_buffer.second, weights.first );
+	hydra::thrust::sort_by_key(common_system_t(), key_buffer.first, key_buffer.first + key_buffer.second, weights.first );
 
 
 	//bins content
@@ -83,7 +79,7 @@ DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>::
 	auto reduced_values  = hydra::thrust::get_temporary_buffer<double>(common_system_t(), data_size);
 	auto reduced_keys    = hydra::thrust::get_temporary_buffer<size_t>(common_system_t(), data_size);
 
-	hydra::thrust::fill(bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
+	hydra::thrust::fill(common_system_t(), bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
 
 	auto reduced_end = hydra::thrust::reduce_by_key(common_system_t(), key_buffer.first,
 			key_buffer.first + key_buffer.second, weights.first, reduced_keys.first, reduced_values.first);
@@ -91,7 +87,7 @@ DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>::
 	hydra::thrust::scatter( common_system_t(),  reduced_values.first, reduced_end.second,
 			reduced_keys.first,bin_contents.first );
 
-	hydra::thrust::copy(bin_contents.first ,
+	hydra::thrust::copy(common_system_t(), bin_contents.first ,
 			bin_contents.first+ bin_contents.second,  fContents.begin());
 
     // deallocate storage with hydra::thrust::return_temporary_buffer
@@ -112,13 +108,9 @@ DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>::
 		Iterator1 begin, Iterator1 end, Iterator2 wbegin )
 {
 	using hydra::thrust::system::detail::generic::select_system;
-	typedef  typename hydra::thrust::iterator_system<Iterator1>::type system1_t;
-	typedef  typename hydra::thrust::iterator_system<Iterator2>::type system2_t;
-	system1_t system1;
-	system2_t system2;
 
 	typedef  typename hydra::thrust::detail::remove_reference<
-			decltype(select_system(exec_policy,fSystem, system1, system2 ))>::type common_system_t;
+			decltype(select_system(exec_policy, fSystem))>::type common_system_t;
 
 
     //----------------
@@ -130,15 +122,15 @@ DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>::
 	//work on local copy of weights
 
 	auto weights  = hydra::thrust::get_temporary_buffer<double>(common_system_t(), data_size);
-	hydra::thrust::copy(wbegin, wbegin+data_size, weights.first);
+	hydra::thrust::copy(common_system_t(), wbegin, wbegin+data_size, weights.first);
 
 	auto keys_begin = hydra::thrust::make_transform_iterator(begin, key_functor );
 	auto keys_end   = hydra::thrust::make_transform_iterator(end, key_functor);
 	auto key_buffer = hydra::thrust::get_temporary_buffer<size_t>(common_system_t(), data_size);
 
-	hydra::thrust::copy( keys_begin, keys_end, key_buffer.first);
+	hydra::thrust::copy( common_system_t(), keys_begin, keys_end, key_buffer.first);
 
-	hydra::thrust::sort_by_key(key_buffer.first, key_buffer.first + key_buffer.second, weights.first );
+	hydra::thrust::sort_by_key(common_system_t(), key_buffer.first, key_buffer.first + key_buffer.second, weights.first );
 
 
 	//bins content
@@ -146,7 +138,7 @@ DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>::
 	auto reduced_values  = hydra::thrust::get_temporary_buffer<double>(common_system_t(), data_size);
 	auto reduced_keys    = hydra::thrust::get_temporary_buffer<size_t>(common_system_t(), data_size);
 
-	hydra::thrust::fill(bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
+	hydra::thrust::fill(common_system_t(), bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
 
 	auto reduced_end = hydra::thrust::reduce_by_key(common_system_t(), keys_begin, keys_end, weights.first,
     		reduced_keys.first, reduced_values.first);
@@ -154,7 +146,7 @@ DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>::
 	hydra::thrust::scatter( common_system_t(),  reduced_values.first, reduced_end.second,
 			reduced_keys.first,bin_contents.first );
 
-	hydra::thrust::copy(bin_contents.first ,
+	hydra::thrust::copy(common_system_t(), bin_contents.first ,
 			bin_contents.first+ bin_contents.second,  fContents.begin());
 
     // deallocate storage with hydra::thrust::return_temporary_buffer
@@ -174,11 +166,9 @@ DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>&
 DenseHistogram<T, N,  hydra::detail::BackendPolicy<BACKEND>, detail::multidimensional>::Fill(Iterator begin, Iterator end )
 {
 	using hydra::thrust::system::detail::generic::select_system;
-	typedef  typename hydra::thrust::iterator_system<Iterator>::type system1_t;
-	system1_t system1;
 
 	typedef  typename hydra::thrust::detail::remove_reference<
-			decltype(select_system(fSystem, system1 ))>::type common_system_t;
+			decltype(select_system(fSystem))>::type common_system_t;
 
 
 		typedef hydra::thrust::pointer<T, common_system_t> buffer_t;
@@ -192,8 +182,8 @@ DenseHistogram<T, N,  hydra::detail::BackendPolicy<BACKEND>, detail::multidimens
 		auto key_buffer = hydra::thrust::get_temporary_buffer<size_t>(common_system_t(), data_size);
 
 
-		hydra::thrust::copy( keys_begin, keys_end, key_buffer.first);
-		hydra::thrust::sort(key_buffer.first, key_buffer.first+data_size);
+		hydra::thrust::copy(common_system_t(), keys_begin, keys_end, key_buffer.first);
+		hydra::thrust::sort(common_system_t(), key_buffer.first, key_buffer.first+data_size);
 
 
 		//bins content
@@ -206,12 +196,12 @@ DenseHistogram<T, N,  hydra::detail::BackendPolicy<BACKEND>, detail::multidimens
 				key_buffer.first, key_buffer.first+data_size,
 				weights, reduced_keys.first, reduced_values.first);
 
-		hydra::thrust::fill(bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
+		hydra::thrust::fill(common_system_t(), bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
 
 		hydra::thrust::scatter( common_system_t(),  reduced_values.first, reduced_end.second,
 			  reduced_keys.first, bin_contents.first );
 
-		hydra::thrust::copy(bin_contents.first ,
+		hydra::thrust::copy(common_system_t(), bin_contents.first ,
 				bin_contents.first+ bin_contents.second,  fContents.begin());
 
 	    // deallocate storage with hydra::thrust::return_temporary_buffer
@@ -228,11 +218,9 @@ template<hydra::detail::Backend BACKEND2, typename Iterator>
 DenseHistogram<T, N, detail::BackendPolicy<BACKEND>, detail::multidimensional>&
 DenseHistogram<T, N,  hydra::detail::BackendPolicy<BACKEND>, detail::multidimensional>::Fill(detail::BackendPolicy<BACKEND2> const& exec_policy, Iterator begin, Iterator end )
 {
-	typedef  typename hydra::thrust::iterator_system<Iterator>::type system1_t;
-		system1_t system1;
 
 		typedef  typename hydra::thrust::detail::remove_reference<
-					decltype(select_system(exec_policy,fSystem, system1))>::type common_system_t;
+					decltype(select_system(exec_policy, fSystem))>::type common_system_t;
 
 		typedef hydra::thrust::pointer<T, common_system_t> buffer_t;
 
@@ -245,8 +233,8 @@ DenseHistogram<T, N,  hydra::detail::BackendPolicy<BACKEND>, detail::multidimens
 		auto key_buffer = hydra::thrust::get_temporary_buffer<size_t>(common_system_t(), data_size);
 
 
-		hydra::thrust::copy( keys_begin, keys_end, key_buffer.first);
-		hydra::thrust::sort(key_buffer.first, key_buffer.first+data_size);
+		hydra::thrust::copy( common_system_t(), keys_begin, keys_end, key_buffer.first);
+		hydra::thrust::sort(common_system_t(), key_buffer.first, key_buffer.first+data_size);
 
 
 		//bins content
@@ -259,13 +247,13 @@ DenseHistogram<T, N,  hydra::detail::BackendPolicy<BACKEND>, detail::multidimens
 				key_buffer.first, key_buffer.first+data_size,
 				weights, reduced_keys.first, reduced_values.first);
 
-		hydra::thrust::fill(bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
+		hydra::thrust::fill(common_system_t(), bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
 
 		hydra::thrust::scatter( common_system_t(),  reduced_values.first, reduced_end.second,
 			  reduced_keys.first, bin_contents.first );
 
 
-		hydra::thrust::copy(bin_contents.first ,
+		hydra::thrust::copy(common_system_t(), bin_contents.first ,
 				bin_contents.first+ bin_contents.second,  fContents.begin());
 
 	    // deallocate storage with hydra::thrust::return_temporary_buffer
@@ -284,11 +272,15 @@ DenseHistogram< T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>&
 DenseHistogram< T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>::Fill(Iterator begin, Iterator end )
 {
 	using hydra::thrust::system::detail::generic::select_system;
-	typedef  typename hydra::thrust::iterator_system<Iterator>::type system1_t;
-	system1_t system1;
 
+	// Reduce on the histogram's own backend. Deriving the common system from the
+	// input iterators as well breaks when the data lives in CUDA pinned host
+	// memory (the host backend under a CUDA build): pinned iterators carry the
+	// cuda tag, so select_system(host, cuda) yields an uninstantiable
+	// cross_system. The (host-accessible) input is bridged by the explicit-policy
+	// thrust calls below.
 	typedef  typename hydra::thrust::detail::remove_reference<
-			decltype(select_system(fSystem, system1 ))>::type common_system_t;
+			decltype(select_system(fSystem))>::type common_system_t;
 
 	size_t data_size = hydra::thrust::distance(begin, end);
 
@@ -300,8 +292,8 @@ DenseHistogram< T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>::Fi
 	auto keys_end   = hydra::thrust::make_transform_iterator(end, key_functor);
 	auto key_buffer = hydra::thrust::get_temporary_buffer<size_t>(common_system_t(), data_size);
 
-	hydra::thrust::copy( keys_begin, keys_end, key_buffer.first);
-	hydra::thrust::sort(key_buffer.first, key_buffer.first+data_size );
+	hydra::thrust::copy(common_system_t(), keys_begin, keys_end, key_buffer.first);
+	hydra::thrust::sort(common_system_t(), key_buffer.first, key_buffer.first+data_size );
 
 
 	//bins content
@@ -314,12 +306,12 @@ DenseHistogram< T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>::Fi
 			key_buffer.first, key_buffer.first+data_size,
 			weights, reduced_keys.first, reduced_values.first);
 
-	hydra::thrust::fill(bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
+	hydra::thrust::fill(common_system_t(), bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
 
 	hydra::thrust::scatter( common_system_t(), reduced_values.first, reduced_end.second,
 		  reduced_keys.first, bin_contents.first);
 
-	hydra::thrust::copy(bin_contents.first ,
+	hydra::thrust::copy(common_system_t(), bin_contents.first ,
 			bin_contents.first+ bin_contents.second,  fContents.begin());
 
 
@@ -341,11 +333,9 @@ DenseHistogram< T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>&
 DenseHistogram< T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>::Fill(detail::BackendPolicy<BACKEND2> const& exec_policy,
 		Iterator begin, Iterator end )
 {
-	typedef  typename hydra::thrust::iterator_system<Iterator>::type system1_t;
-	system1_t system1;
 
 	typedef  typename hydra::thrust::detail::remove_reference<
-			decltype(select_system(exec_policy, fSystem,system1))>::type common_system_t;
+			decltype(select_system(exec_policy, fSystem))>::type common_system_t;
 
 	size_t data_size = hydra::thrust::distance(begin, end);
 
@@ -357,8 +347,8 @@ DenseHistogram< T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>::Fi
 	auto keys_end   = hydra::thrust::make_transform_iterator(end, key_functor);
 	auto key_buffer = hydra::thrust::get_temporary_buffer<size_t>(common_system_t(), data_size);
 
-	hydra::thrust::copy( keys_begin, keys_end, key_buffer.first);
-	hydra::thrust::sort(key_buffer.first, key_buffer.first+data_size );
+	hydra::thrust::copy( common_system_t(), keys_begin, keys_end, key_buffer.first);
+	hydra::thrust::sort(common_system_t(), key_buffer.first, key_buffer.first+data_size );
 
 
 	//bins content
@@ -371,12 +361,12 @@ DenseHistogram< T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>::Fi
 			key_buffer.first, key_buffer.first+data_size,
 			weights, reduced_keys.first, reduced_values.first);
 
-	hydra::thrust::fill(bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
+	hydra::thrust::fill(common_system_t(), bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
 
 	hydra::thrust::scatter( common_system_t(), reduced_values.first, reduced_end.second,
 		  reduced_keys.first, bin_contents.first);
 
-	hydra::thrust::copy(bin_contents.first ,
+	hydra::thrust::copy(common_system_t(), bin_contents.first ,
 			bin_contents.first+ bin_contents.second,  fContents.begin());
 
 
@@ -397,13 +387,9 @@ DenseHistogram<T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>&
 DenseHistogram<T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>::Fill(Iterator1 begin, Iterator1 end, Iterator2 wbegin )
 {
 	using hydra::thrust::system::detail::generic::select_system;
-	typedef  typename hydra::thrust::iterator_system<Iterator1>::type system1_t;
-	typedef  typename hydra::thrust::iterator_system<Iterator2>::type system2_t;
-	system1_t system1;
-	system2_t system2;
 
 	typedef  typename hydra::thrust::detail::remove_reference<
-			decltype(select_system(fSystem,system1, system2 ))>::type common_system_t;
+			decltype(select_system(fSystem))>::type common_system_t;
 
 	size_t data_size = hydra::thrust::distance(begin, end);
 
@@ -411,7 +397,7 @@ DenseHistogram<T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>::Fil
 
 	//work on local copy of data
 	auto weights  = hydra::thrust::get_temporary_buffer<double>(common_system_t(), data_size);
-	hydra::thrust::copy(wbegin, wbegin+data_size, weights.first);
+	hydra::thrust::copy(common_system_t(), wbegin, wbegin+data_size, weights.first);
 
 	auto keys_begin = hydra::thrust::make_transform_iterator(begin, key_functor );
 	auto keys_end   = hydra::thrust::make_transform_iterator(end, key_functor);
@@ -430,12 +416,12 @@ DenseHistogram<T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional>::Fil
 			key_buffer.first, key_buffer.first+data_size,
 			weights.first, reduced_keys.first, reduced_values.first);
 
-	hydra::thrust::fill( common_system_t(), bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
+	hydra::thrust::fill(common_system_t(), bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
 
 	hydra::thrust::scatter( common_system_t(), reduced_values.first, reduced_end.second,
 		  reduced_keys.first, bin_contents.first);
 
-	hydra::thrust::copy( bin_contents.first ,
+	hydra::thrust::copy( common_system_t(), bin_contents.first ,
 			bin_contents.first+ bin_contents.second,  fContents.begin());
 
 
@@ -459,13 +445,9 @@ DenseHistogram<T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional >::Fi
 		Iterator1 begin, Iterator1 end, Iterator2 wbegin )
 {
 	using hydra::thrust::system::detail::generic::select_system;
-	typedef  typename hydra::thrust::iterator_system<Iterator1>::type system1_t;
-	typedef  typename hydra::thrust::iterator_system<Iterator2>::type system2_t;
-	system1_t system1;
-	system2_t system2;
 
 	typedef  typename hydra::thrust::detail::remove_reference<
-			decltype(select_system(exec_policy, fSystem,system1, system2 ))>::type common_system_t;
+			decltype(select_system(exec_policy, fSystem))>::type common_system_t;
 
 	size_t data_size = hydra::thrust::distance(begin, end);
 
@@ -473,7 +455,7 @@ DenseHistogram<T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional >::Fi
 
 	//work on local copy of data
 	auto weights  = hydra::thrust::get_temporary_buffer<double>(common_system_t(), data_size);
-	hydra::thrust::copy(wbegin, wbegin+data_size, weights.first);
+	hydra::thrust::copy(common_system_t(), wbegin, wbegin+data_size, weights.first);
 
 	auto keys_begin = hydra::thrust::make_transform_iterator(begin, key_functor );
 	auto keys_end   = hydra::thrust::make_transform_iterator(end, key_functor);
@@ -492,12 +474,12 @@ DenseHistogram<T,1, detail::BackendPolicy<BACKEND>, detail::unidimensional >::Fi
 			key_buffer.first, key_buffer.first+data_size,
 			weights.first, reduced_keys.first, reduced_values.first);
 
-	hydra::thrust::fill( common_system_t(), bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
+	hydra::thrust::fill(common_system_t(), bin_contents.first, bin_contents.first+bin_contents.second, 0.0);
 
 	hydra::thrust::scatter( common_system_t(), reduced_values.first, reduced_end.second,
 		  reduced_keys.first, bin_contents.first);
 
-	hydra::thrust::copy( common_system_t(), bin_contents.first ,
+	hydra::thrust::copy(common_system_t(), bin_contents.first ,
 			bin_contents.first+ bin_contents.second,  fContents.begin());
 
 
